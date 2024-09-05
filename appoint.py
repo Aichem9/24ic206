@@ -21,8 +21,8 @@ reservation_time = st.sidebar.time_input("예약 시간", datetime.now().time())
 if st.sidebar.button("상담 예약 추가"):
     # 중복 확인
     existing_reservations = st.session_state.reservation_data[
-        (st.session_state.reservation_data["예약 날짜"] == reservation_date) &
-        (st.session_state.reservation_data["예약 시간"] == reservation_time)
+        (st.session_state.reservation_data["예약 날짜"] == pd.Timestamp(reservation_date)) &
+        (st.session_state.reservation_data["예약 시간"] == pd.Timestamp.combine(reservation_date, reservation_time))
     ]
     
     if not existing_reservations.empty:
@@ -31,8 +31,10 @@ if st.sidebar.button("상담 예약 추가"):
         # 입력 데이터를 데이터프레임에 추가
         new_reservation = {"학번": student_id, "이름": student_name, 
                            "상담 항목": consultation_type, 
-                           "예약 날짜": reservation_date, "예약 시간": reservation_time}
-        st.session_state.reservation_data = st.session_state.reservation_data.append(new_reservation, ignore_index=True)
+                           "예약 날짜": pd.Timestamp(reservation_date), "예약 시간": pd.Timestamp.combine(reservation_date, reservation_time)}
+
+        # 세션 상태에 데이터프레임을 갱신
+        st.session_state.reservation_data = pd.concat([st.session_state.reservation_data, pd.DataFrame([new_reservation])], ignore_index=True)
         st.sidebar.success("상담 예약이 추가되었습니다!")
 
 # 예약된 상담 내역 대시보드
