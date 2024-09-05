@@ -2,15 +2,26 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 앱 타이틀
-st.title("IC24 2-6 학생 상담 예약 대시보드 by Aichem")
+# CSV 파일 경로
+csv_file_path = "reservations.csv"
+
+# CSV 파일에서 데이터를 불러오는 함수
+def load_data():
+    try:
+        return pd.read_csv(csv_file_path)
+    except FileNotFoundError:
+        return pd.DataFrame(columns=["학번", "이름", "상담 항목", "예약 날짜", "예약 시간", "코멘트"])
+
+# 데이터를 CSV 파일에 저장하는 함수
+def save_data(df):
+    df.to_csv(csv_file_path, index=False)
 
 # 앱 타이틀
 st.title("학생 상담 예약 대시보드")
 
-# 예약 정보를 저장할 빈 데이터프레임 생성
+# CSV 파일에서 예약 데이터 불러오기
 if 'reservation_data' not in st.session_state:
-    st.session_state.reservation_data = pd.DataFrame(columns=["학번", "이름", "상담 항목", "예약 날짜", "예약 시간", "코멘트"])
+    st.session_state.reservation_data = load_data()
 
 # 학생 예약 정보 입력
 st.sidebar.header("상담 예약 정보 입력")
@@ -25,8 +36,8 @@ comment = st.sidebar.text_area("코멘트", "상담에 대한 추가 내용을 �
 if st.sidebar.button("상담 예약 추가"):
     # 중복 확인
     existing_reservations = st.session_state.reservation_data[
-        (st.session_state.reservation_data["예약 날짜"] == pd.Timestamp(reservation_date)) &
-        (st.session_state.reservation_data["예약 시간"] == pd.Timestamp.combine(reservation_date, reservation_time))
+        (st.session_state.reservation_data["예약 날짜"] == str(reservation_date)) &
+        (st.session_state.reservation_data["예약 시간"] == str(reservation_time))
     ]
     
     if not existing_reservations.empty:
@@ -37,13 +48,14 @@ if st.sidebar.button("상담 예약 추가"):
             "학번": student_id, 
             "이름": student_name, 
             "상담 항목": consultation_type, 
-            "예약 날짜": pd.Timestamp(reservation_date), 
-            "예약 시간": pd.Timestamp.combine(reservation_date, reservation_time), 
+            "예약 날짜": str(reservation_date), 
+            "예약 시간": str(reservation_time), 
             "코멘트": comment
         }
 
-        # 세션 상태에 데이터프레임을 갱신
+        # 새로운 데이터를 세션 상태와 CSV 파일에 저장
         st.session_state.reservation_data = pd.concat([st.session_state.reservation_data, pd.DataFrame([new_reservation])], ignore_index=True)
+        save_data(st.session_state.reservation_data)  # 데이터 저장
         st.sidebar.success("상담 예약이 추가되었습니다!")
 
 # 예약된 상담 내역 대시보드
